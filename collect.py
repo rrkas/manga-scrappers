@@ -21,9 +21,7 @@ for url in [
     "https://mangaclash.com/manga/jujutsu-kaisen/",
     "https://mangaclash.com/manga/hunter-x-hunter/",
     "https://mangaclash.com/manga/tomb-raider-king/",
-    "https://mangaclash.com/manga/dragon-ball-super/",
     "https://mangaclash.com/manga/the-beginning-after-the-end/",
-    "https://mangaclash.com/manga/super-dragon-ball-heroes-big-bang-mission/",
 ]:
     os.system(f""" python mangaclash.py "{url}" """)
 
