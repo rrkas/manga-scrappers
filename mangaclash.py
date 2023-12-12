@@ -7,6 +7,7 @@ import uuid
 from multiprocessing import cpu_count
 from pathlib import Path
 
+import fitz
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -76,6 +77,12 @@ class MangaClashMangaSeriesScrapper:
             img.convert()
             return img
 
+    def get_pdf_page_count(self, fp: Path):
+        pdf_document = fitz.open(str(fp))
+        num_pages = pdf_document.page_count
+        pdf_document.close()
+        return num_pages
+
     def is_valid_fp(self, fp: Path):
         return os.path.exists(fp) and os.stat(fp).st_size > 0
 
@@ -136,7 +143,7 @@ class MangaClashMangaSeriesScrapper:
 
         threads = []
 
-        for ch_idx, url in enumerate(urls, 1):
+        for ch_idx, url in tqdm(list(enumerate(urls, 1))):
             parts = url.strip("/").split("/")
 
             if len(parts) != 6:
@@ -144,7 +151,7 @@ class MangaClashMangaSeriesScrapper:
 
             chapter_name = f"""{str(ch_idx).zfill(self.index_width)}__{parts[-1]}"""
 
-            print(url)
+            # print(url)
 
             if chapter_name not in self.chapters_data:
                 t = threading.Thread(
@@ -227,11 +234,11 @@ class MangaClashMangaSeriesScrapper:
         pdf_fp = self.manga_dir / batch_name / (chapter_name + ".pdf")
         os.makedirs(pdf_fp.parent, exist_ok=True)
 
-        if self.is_valid_fp(pdf_fp):
+        if self.is_valid_fp(pdf_fp) and self.get_pdf_page_count(pdf_fp) == len(imgs):
             return
 
         images = []
-        for idx, img in tqdm(list(enumerate(imgs))):
+        for idx, img in list(enumerate(imgs)):
             # print(img)
             img_path = (
                 self.raw_imgs_dir
@@ -269,10 +276,11 @@ class MangaClashMangaSeriesScrapper:
                 pass
 
         self.convert_imgs2pdf(images, pdf_fp)
+        shutil.rmtree(self.raw_imgs_dir / batch_name / chapter_name)
 
     def convert_imgs2pdf(self, images: list, fp: Path):
         if len(images) > 0:
-            print(fp)
+            # print(fp)
             images[0].save(
                 fp,
                 save_all=True,

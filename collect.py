@@ -1,8 +1,21 @@
+# 2023 dec 12
+
 import os
 
 for url in [
-    "https://mangaclash.com/manga/bleach/",
-    "https://mangaclash.com/manga/naruto/",
+    #
+    #############
+    # completed #
+    #############
+    #
+    # "https://mangaclash.com/manga/bleach/",
+    # "https://mangaclash.com/manga/naruto/",
+    # "https://mangaclash.com/manga/solo-leveling/",
+    #
+    ###########
+    # ongoing #
+    ###########
+    #
     "https://mangaclash.com/manga/one-piece/",
     "https://mangaclash.com/manga/dragon-ball/",
     "https://mangaclash.com/manga/jujutsu-kaisen/",
