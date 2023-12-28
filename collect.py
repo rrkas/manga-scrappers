@@ -8,9 +8,9 @@ for url in [
     # completed #
     #############
     #
-    # "https://mangaclash.com/manga/bleach/",
-    # "https://mangaclash.com/manga/naruto/",
-    # "https://mangaclash.com/manga/solo-leveling/",
+    "https://mangaclash.com/manga/bleach/",
+    "https://mangaclash.com/manga/naruto/",
+    "https://mangaclash.com/manga/solo-leveling/",
     #
     ###########
     # ongoing #
@@ -25,13 +25,13 @@ for url in [
 ]:
     os.system(f""" python mangaclash.py "{url}" """)
 
-for url in [
-    "https://mangaweebs.in/manga/the-lords-coins-arent-decreasing/chapter-1/",
-]:
-    pass
+# for url in [
+#     "https://mangaweebs.in/manga/the-lords-coins-arent-decreasing/",
+# ]:
+#     os.system(f""" python mangaweebs.py "{url}" """)
 
 
-for url in [
-    "https://deathnote-manga.online/manga/death-note-chapter-1/",
-]:
-    pass
+# for url in [
+#     "https://deathnote-manga.online/manga/death-note-chapter-1/",
+# ]:
+#     pass
