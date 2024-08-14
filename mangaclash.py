@@ -1,7 +1,7 @@
-import json
-import os
-import shutil
+import json, time
+import os, traceback
 import sys
+import urllib.parse as urlparse
 import threading
 import uuid
 from multiprocessing import cpu_count
@@ -11,39 +11,27 @@ import fitz
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select, WebDriverWait
 from tqdm import tqdm
 
 
 class MangaClashMangaSeriesScrapper:
     OUTPUT_DIR = Path("data/mangaclash")
     HEADERS = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            + "AppleWebKit/537.36 (KHTML, like Gecko) "
-            + "Chrome/42.0.2311.135 "
-            + "Safari/537.36 "
-            + "Edge/12.246"
-        )
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246"
     }
     BATCH_SIZE = 100
     # MAX_THREADS = 10
     MAX_THREADS = max(1, cpu_count() - 1)
 
-    def __init__(self, base_url) -> None:
-        self.url = base_url
+    def __init__(self, url) -> None:
+        self.url = url
+
+        self.hostname = urlparse.urlparse(self.url).hostname
 
         parts = self.url.strip("/").split("/")
         self.manga_name = parts[-1]
 
-        self.raw_imgs_dir = self.OUTPUT_DIR / ".temp" / str(uuid.uuid4().hex)
+        self.raw_imgs_dir = self.OUTPUT_DIR / ".temp" / self.hostname / self.manga_name
         os.makedirs(self.raw_imgs_dir, exist_ok=True)
 
         self.manga_dir = self.OUTPUT_DIR / self.manga_name
@@ -99,51 +87,20 @@ class MangaClashMangaSeriesScrapper:
         resp = requests.get(url, headers=self.HEADERS)
         return BeautifulSoup(resp.content, "html5lib")
 
-    def get_driver(self, url):
-        chrome_options = Options()
-        for e in [
-            "enable-automation",
-            "start-maximized",
-            "disable-infobars",
-            "--disable-infobars",
-            "--headless",
-            "--no-sandbox",
-            "--force-device-scale-factor=1",
-            "--disable-extensions",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-        ]:
-            chrome_options.add_argument(e)
-
-        chrome_prefs = {"profile.managed_default_content_settings.images": 2}
-        chrome_options.experimental_options["prefs"] = chrome_prefs
-        chrome_prefs["profile.default_content_settings"] = {"images": 2}
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-        # return chrome_options
-
-        # start = datetime.datetime.now()
-        # service = Service(executable_path="/usr/bin/chromedriver")
-        driver = webdriver.Chrome(
-            # service=service,
-            # options=set_chrome_options(),
-            options=chrome_options,
-        )
-        # driver = webdriver.Remote(desired_capabilities=webdriver.DesiredCapabilities.HTMLUNIT)
-        driver.implicitly_wait(0.05)
-        driver.set_page_load_timeout(60 * 60 * 60)
-        driver.get(url)
-        # end = datetime.datetime.now()
-        # print(end - start)
-        return driver
-
     def scrap(self):
         urls = self.get_all_chapter_urls()
+        with open(self.manga_dir / "chapter_urls.json", "w") as f:
+            json.dump(
+                urls, f, ensure_ascii=False, indent=4, sort_keys=True, default=str
+            )
 
         self.index_width = max(5, len(str(len(urls))))
 
         threads = []
 
-        for ch_idx, url in tqdm(list(enumerate(urls, 1))):
+        for ch_idx, url in tqdm(
+            list(enumerate(urls, 1)), desc=f"{self.hostname} -- {self.manga_name}"
+        ):
             parts = url.strip("/").split("/")
 
             if len(parts) != 6:
@@ -179,20 +136,10 @@ class MangaClashMangaSeriesScrapper:
         os.system(f""" rm -rf "{self.raw_imgs_dir}" """)
 
     def get_all_chapter_urls(self):
-        driver = self.get_driver(self.url)
-        show_more = driver.find_elements(
-            By.XPATH, """//*[@class="c-chapter-readmore"]"""
-        )
-
-        if len(show_more) > 0:
-            show_more[0].click()
-
-        contents = driver.find_elements(
-            By.XPATH,
-            """//*[@class="page-content-listing single-page"]//li""",
-        )
+        soup = self.get_soup(self.url)
         return [
-            c.find_element(By.TAG_NAME, "a").get_attribute("href") for c in contents
+            e.find("a")["href"]
+            for e in soup.find_all("li", attrs={"class": "wp-manga-chapter"})
         ][::-1]
 
     def process_page(
@@ -253,6 +200,7 @@ class MangaClashMangaSeriesScrapper:
 
             if not (self.is_valid_fp(img_path)):
                 try:
+                    time.sleep(0.01)
                     img_resp = requests.get(
                         img,
                         headers=self.HEADERS,
@@ -276,7 +224,7 @@ class MangaClashMangaSeriesScrapper:
                 pass
 
         self.convert_imgs2pdf(images, pdf_fp)
-        shutil.rmtree(self.raw_imgs_dir / batch_name / chapter_name)
+        os.system(f'rm -rf "{self.raw_imgs_dir / batch_name / chapter_name}"')
 
     def convert_imgs2pdf(self, images: list, fp: Path):
         if len(images) > 0:
@@ -299,5 +247,11 @@ class MangaClashMangaSeriesScrapper:
             )
 
 
-scrapper = MangaClashMangaSeriesScrapper(sys.argv[1])
-scrapper.scrap()
+if __name__ == "__main__":
+    BASE_URL = sys.argv[1]
+    scrapper = MangaClashMangaSeriesScrapper(BASE_URL)
+    try:
+        scrapper.scrap()
+    except Exception as err:
+        print("ERR", BASE_URL, str(err).splitlines()[0])
+        traceback.print_exc()

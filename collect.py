@@ -1,6 +1,6 @@
 # 2023 dec 12
 
-import os
+import mangaclash
 
 for url in [
     #
@@ -11,6 +11,7 @@ for url in [
     "https://mangaclash.com/manga/bleach/",
     "https://mangaclash.com/manga/naruto/",
     "https://mangaclash.com/manga/solo-leveling/",
+    "https://mangaclash.com/manga/tomb-raider-king/",
     #
     ###########
     # ongoing #
@@ -20,18 +21,9 @@ for url in [
     "https://mangaclash.com/manga/dragon-ball/",
     "https://mangaclash.com/manga/jujutsu-kaisen/",
     "https://mangaclash.com/manga/hunter-x-hunter/",
-    "https://mangaclash.com/manga/tomb-raider-king/",
     "https://mangaclash.com/manga/the-beginning-after-the-end/",
 ]:
-    os.system(f""" python mangaclash.py "{url}" """)
-
-# for url in [
-#     "https://mangaweebs.in/manga/the-lords-coins-arent-decreasing/",
-# ]:
-#     os.system(f""" python mangaweebs.py "{url}" """)
-
-
-# for url in [
-#     "https://deathnote-manga.online/manga/death-note-chapter-1/",
-# ]:
-#     pass
+    try:
+        mangaclash.MangaClashMangaSeriesScrapper(url).scrap()
+    except Exception as err:
+        print("ERR", url, str(err).splitlines()[0])
