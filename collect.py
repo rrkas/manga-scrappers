@@ -1,36 +1,31 @@
 # 2023 dec 12
 
-import mangaclash, mgeko
+import mangaclash, mgeko, urls
 
-for url in [
-    #
-    #############
-    # completed #
-    #############
-    #
-    "https://mangaclash.com/manga/bleach/",
-    "https://mangaclash.com/manga/naruto/",
-    "https://mangaclash.com/manga/solo-leveling/",
-    "https://mangaclash.com/manga/tomb-raider-king/",
-    #
-    ###########
-    # ongoing #
-    ###########
-    #
-    "https://mangaclash.com/manga/one-piece/",
-    "https://mangaclash.com/manga/dragon-ball/",
-    "https://mangaclash.com/manga/jujutsu-kaisen/",
-    "https://mangaclash.com/manga/hunter-x-hunter/",
-    "https://mangaclash.com/manga/the-beginning-after-the-end/",
-]:
+skip_chapter_in_json = True
+
+#########################################################################
+#                          Mangaclash                                   #
+#########################################################################
+
+for url in urls.mangaclash_urls:
     try:
-        mangaclash.MangaClashMangaSeriesScrapper(url).scrap()
+        mangaclash.MangaClashMangaSeriesScrapper(
+            url,
+            skip_chapter_in_json=skip_chapter_in_json,
+        ).scrap()
     except Exception as err:
         print("ERR", url, str(err).splitlines()[0])
 
+#########################################################################
+#                               mgeko                                   #
+#########################################################################
 
-for url in ["https://www.mgeko.cc/manga/the-lords-coins-arent-decreasing/"]:
+for url in urls.mgeko_urls:
     try:
-        mgeko.MgekoMangaSeriesScrapper(url).scrap()
+        mgeko.MgekoMangaSeriesScrapper(
+            url,
+            skip_chapter_in_json=skip_chapter_in_json,
+        ).scrap()
     except Exception as err:
         print("ERR", url, str(err).splitlines()[0])
