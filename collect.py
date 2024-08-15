@@ -1,6 +1,6 @@
 # 2023 dec 12
 
-import mangaclash
+import mangaclash, mgeko
 
 for url in [
     #
@@ -25,5 +25,12 @@ for url in [
 ]:
     try:
         mangaclash.MangaClashMangaSeriesScrapper(url).scrap()
+    except Exception as err:
+        print("ERR", url, str(err).splitlines()[0])
+
+
+for url in ["https://www.mgeko.cc/manga/the-lords-coins-arent-decreasing/"]:
+    try:
+        mgeko.MgekoMangaSeriesScrapper(url).scrap()
     except Exception as err:
         print("ERR", url, str(err).splitlines()[0])

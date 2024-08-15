@@ -1,7 +1,0 @@
-services:
-  scrapper:
-    build: .
-    # image: rrka79wal/
-    # command: bash -c "while :; do sleep 1; done"
-    volumes:
-      - ./data:/scrapper/data

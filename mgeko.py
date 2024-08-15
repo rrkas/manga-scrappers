@@ -1,5 +1,6 @@
 import json, time
 import os, traceback
+import urllib.parse
 import sys
 import threading
 import uuid
@@ -25,10 +26,11 @@ class MgekoMangaSeriesScrapper:
     def __init__(self, url) -> None:
         self.url = url
 
+        self.hostname = urllib.parse.urlparse(self.url).hostname
         parts = self.url.strip("/").split("/")
         self.manga_name = parts[-1]
 
-        self.raw_imgs_dir = self.OUTPUT_DIR / ".temp" / str(uuid.uuid4().hex)
+        self.raw_imgs_dir = self.OUTPUT_DIR / ".temp" / self.hostname / self.manga_name
         os.makedirs(self.raw_imgs_dir, exist_ok=True)
 
         self.manga_dir = self.OUTPUT_DIR / self.manga_name
@@ -95,7 +97,9 @@ class MgekoMangaSeriesScrapper:
 
         threads = []
 
-        for ch_idx, url in tqdm(list(enumerate(urls, 1)), desc=self.url):
+        for ch_idx, url in tqdm(
+            list(enumerate(urls, 1)), desc=f"{self.hostname} -- {self.manga_name}"
+        ):
             parts = url.strip("/").split("/")
 
             if len(parts) != 6:
@@ -131,10 +135,10 @@ class MgekoMangaSeriesScrapper:
         os.system(f""" rm -rf "{self.raw_imgs_dir}" """)
 
     def get_all_chapter_urls(self):
-        soup = self.get_soup(self.url)
+        soup = self.get_soup(urllib.parse.urljoin(self.url, "all-chapters/"))
         return [
-            e.find("a")["href"]
-            for e in soup.find_all("li", attrs={"class": "wp-manga-chapter"})
+            urllib.parse.urljoin(self.url, e.find("a")["href"])
+            for e in soup.find("ul", attrs={"class": "chapter-list"}).find_all("li")
         ][::-1]
 
     def process_page(
@@ -144,7 +148,7 @@ class MgekoMangaSeriesScrapper:
         chapter_name: str,
     ):
         soup = self.get_soup(url)
-        imgs_div = soup.find("div", attrs={"class": "reading-content"})
+        imgs_div = soup.find("div", attrs={"id": "chapter-reader"})
         batch_name = self.get_batch_name(ch_idx)
 
         if imgs_div is None:

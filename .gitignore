@@ -3,4 +3,5 @@ venv/
 raw_imgs/
 .temp/
 
+*.pyc
 *.pdf
