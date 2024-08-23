@@ -1,31 +1,61 @@
 # 2023 dec 12
 
 import mangaclash, mgeko, urls
+import threading
 
+MAX_THREADS = 1
 skip_chapter_in_json = True
+threads = []
 
 #########################################################################
 #                          Mangaclash                                   #
 #########################################################################
 
-for url in urls.mangaclash_urls:
+
+def process_mc(url):
     try:
-        mangaclash.MangaClashMangaSeriesScrapper(
+        obj = mangaclash.MangaClashMangaSeriesScrapper(
             url,
             skip_chapter_in_json=skip_chapter_in_json,
-        ).scrap()
+        )
+        obj.scrap()
+        del obj
     except Exception as err:
         print("ERR", url, str(err).splitlines()[0])
+
+
+for url in sorted(urls.mangaclash_urls, key=len):
+    t = threading.Thread(target=process_mc, args=(url,))
+    t.start()
+    threads.append(t)
+
+    while sum([t.is_alive() for t in threads]) >= MAX_THREADS:
+        pass
 
 #########################################################################
 #                               mgeko                                   #
 #########################################################################
 
-for url in urls.mgeko_urls:
+
+def process_mg(url):
     try:
-        mgeko.MgekoMangaSeriesScrapper(
+        obj = mgeko.MgekoMangaSeriesScrapper(
             url,
             skip_chapter_in_json=skip_chapter_in_json,
-        ).scrap()
+        )
+        obj.scrap()
+        del obj
     except Exception as err:
         print("ERR", url, str(err).splitlines()[0])
+
+
+for url in sorted(urls.mgeko_urls, key=len):
+    t = threading.Thread(target=process_mg, args=(url,))
+    t.start()
+    threads.append(t)
+
+    while sum([t.is_alive() for t in threads]) >= MAX_THREADS:
+        pass
+
+while sum([t.is_alive() for t in threads]) > 0:
+    pass

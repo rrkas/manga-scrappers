@@ -14,13 +14,13 @@ class MangaClashMangaSeriesScrapper(BaseMangaSeriesScrapper):
         ][::-1]
 
     def get_imgs_from_url(self, url: str):
+        imgs = []
         soup = self.get_soup(url)
         imgs_div = soup.find("div", attrs={"class": "reading-content"})
 
         if imgs_div is None:
-            return
+            return imgs
 
-        imgs = []
         for e in imgs_div.findAll("img"):
             try:
                 imgs.append(e["src"].strip())

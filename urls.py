@@ -21,6 +21,10 @@ mangaclash_urls = [
     "https://toonclash.com/manga/detective-conan/",
     "https://toonclash.com/manga/sss-class-suicide-hunter/",
     "https://toonclash.com/manga/tower-of-god/",
+    "https://toonclash.com/manga/martial-peak/",
+    "https://toonclash.com/manga/one-punch-man/",
+    "https://toonclash.com/manga/tales-of-demons-and-gods/",
+    "https://toonclash.com/manga/apotheosis-ascension-to-godhood/",
 ]
 
 

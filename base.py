@@ -18,11 +18,11 @@ class BaseMangaSeriesScrapper:
     }
     BATCH_SIZE = 100
     # MAX_THREADS = 10
-    MAX_THREADS = max(1, cpu_count() - 1)
+    MAX_THREADS = max(2, cpu_count() - 2)
 
     @property
     def OUTPUT_DIR(self):
-        return Path(f"../MangaDownloads/") / self.NAME
+        return Path(f"./downloads/") / self.NAME
 
     def __init__(
         self,
@@ -44,9 +44,6 @@ class BaseMangaSeriesScrapper:
         parts = self.url.strip("/").split("/")
         self.manga_name = parts[-1]
 
-        self.raw_imgs_dir = self.OUTPUT_DIR / ".temp" / self.hostname / self.manga_name
-        os.makedirs(self.raw_imgs_dir, exist_ok=True)
-
         self.manga_dir = self.OUTPUT_DIR / self.manga_name
         os.makedirs(self.manga_dir, exist_ok=True)
 
@@ -55,8 +52,11 @@ class BaseMangaSeriesScrapper:
         self.chapters_data = {}
 
         if os.path.exists(self.chapters_fp):
-            with open(self.chapters_fp, encoding="utf-8") as f:
-                self.chapters_data = json.load(f)
+            try:
+                with open(self.chapters_fp, encoding="utf-8") as f:
+                    self.chapters_data = json.load(f)
+            except Exception as err:
+                print(err)
 
     def get_img(self, path: Path):
         if path.name.split(".")[-1] == "png":
@@ -111,8 +111,8 @@ class BaseMangaSeriesScrapper:
 
         threads = []
 
-        _desc = f"{self.hostname} -- {self.manga_name}"
-        for ch_idx, url in tqdm(list(enumerate(urls, 1)), desc=_desc):
+        _desc = f"{self.manga_name} ({self.NAME})"
+        for ch_idx, url in tqdm(list(enumerate(urls, 1)), postfix=_desc):
             parts = url.strip("/").split("/")
 
             if len(parts) != 6:
@@ -121,19 +121,21 @@ class BaseMangaSeriesScrapper:
             chapter_prefix_idx = f"{str(ch_idx).zfill(self.index_width)}"
             chapter_name = f"{chapter_prefix_idx}__{parts[-1]}"
 
-            if self.skip_chapter_in_json and url not in [
+            if self.skip_chapter_in_json and url in [
                 e["url"] for e in self.chapters_data.copy().values()
             ]:
-                t = threading.Thread(
-                    target=self.process_page,
-                    kwargs=dict(
-                        url=url,
-                        ch_idx=ch_idx,
-                        chapter_name=chapter_name,
-                    ),
-                )
-                t.start()
-                threads.append(t)
+                continue
+
+            t = threading.Thread(
+                target=self.process_page,
+                kwargs=dict(
+                    url=url,
+                    ch_idx=ch_idx,
+                    chapter_name=chapter_name,
+                ),
+            )
+            t.start()
+            threads.append(t)
 
             if ch_idx % self.MAX_THREADS == 0:
                 self.save_chapters()
@@ -145,43 +147,37 @@ class BaseMangaSeriesScrapper:
             pass
 
         self.save_chapters()
-
-        os.system(f""" rm -rf "{self.raw_imgs_dir}" """)
+        del self.chapters_data
 
     def process_page(self, url: str, ch_idx: int, chapter_name: str):
         imgs = self.get_imgs_from_url(url)
 
         batch_name = self.get_batch_name(ch_idx)
 
-        self.chapters_data[chapter_name] = {
-            "chapter_index": ch_idx,
-            "url": url,
-            "image_urls": imgs,
-        }
-
         if len(imgs) == 0:
             return
 
         imgs_width = len(str(len(imgs)))
 
-        pdf_fp = self.manga_dir / batch_name / (chapter_name + ".pdf")
-        os.makedirs(pdf_fp.parent, exist_ok=True)
+        output_dir = self.manga_dir / "imgs" / batch_name / chapter_name
+        pdf_fp = self.manga_dir / "pdfs" / batch_name / (chapter_name + ".pdf")
 
-        if self.is_valid_fp(pdf_fp) and self.get_pdf_page_count(pdf_fp) == len(imgs):
+        for dpath in [output_dir, pdf_fp.parent]:
+            os.makedirs(dpath, exist_ok=True)
+
+        if (
+            len(os.listdir(output_dir)) == len(imgs)
+            and self.is_valid_fp(pdf_fp)
+            and self.get_pdf_page_count(pdf_fp) == len(imgs)
+        ):
             return
 
         images = []
         for idx, img in list(enumerate(imgs)):
-            # print(img)
-            img_path = (
-                self.raw_imgs_dir
-                / batch_name
-                / chapter_name
-                / (
-                    f"""{str(idx).zfill(imgs_width)}"""
-                    "."
-                    f"""{img.strip("/").split(".")[-1]}"""
-                )
+            img_path = output_dir / (
+                f"""{str(idx).zfill(imgs_width)}"""
+                "."
+                f"""{img.strip("/").split(".")[-1]}"""
             )
 
             if not (self.is_valid_fp(img_path)):
@@ -193,6 +189,9 @@ class BaseMangaSeriesScrapper:
                         allow_redirects=True,
                     )
 
+                    if img_resp.status_code != 200:
+                        continue
+
                     if img_resp.headers["Content-Type"].startswith("image"):
                         os.makedirs(img_path.parent, exist_ok=True)
                         with open(img_path, "wb") as f:
@@ -200,24 +199,28 @@ class BaseMangaSeriesScrapper:
                     else:
                         print(img_resp.headers["Content-Type"])
                         print(img_resp.text)
-                        exit()
+
+                    del img_resp
+
+                    images.append(self.get_img(img_path))
                 except:
                     pass
 
-            try:
-                images.append(self.get_img(img_path))
-            except:
-                pass
-
         self.convert_imgs2pdf(images, pdf_fp)
-        os.system(f'rm -rf "{self.raw_imgs_dir / batch_name / chapter_name}"')
+        del images
+
+        self.chapters_data[chapter_name] = {
+            "chapter_index": ch_idx,
+            "url": url,
+            "image_urls": imgs,
+        }
 
     def convert_imgs2pdf(self, images: list, fp: Path):
         if len(images) > 0:
             images[0].save(
                 fp,
                 save_all=True,
-                append_images=images[1:],
+                append_images=images,
             )
 
     def save_chapters(self):

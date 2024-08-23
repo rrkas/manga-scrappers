@@ -1,5 +1,6 @@
 black
 bs4
+chardet
 fqdn
 html5lib
 isoduration
@@ -9,10 +10,11 @@ ndg-httpsclient
 pillow
 pip-chill
 pymupdf
+pypdf
 pysocks
+requests
 selenium
 tokenize-rt
 tqdm
 uri-template
 webcolors
-requests==2.21.0
