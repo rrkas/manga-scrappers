@@ -1,6 +1,6 @@
 # 2023 dec 12
 
-import mangaclash, mgeko, urls
+from manga_scrappers import mangaclash, mgeko, urls as manga_urls
 import threading
 
 MAX_THREADS = 1
@@ -24,7 +24,7 @@ def process_mc(url):
         print("ERR", url, str(err).splitlines()[0])
 
 
-for url in sorted(urls.mangaclash_urls, key=len):
+for url in sorted(manga_urls.mangaclash_urls, key=len):
     t = threading.Thread(target=process_mc, args=(url,))
     t.start()
     threads.append(t)
@@ -49,7 +49,7 @@ def process_mg(url):
         print("ERR", url, str(err).splitlines()[0])
 
 
-for url in sorted(urls.mgeko_urls, key=len):
+for url in sorted(manga_urls.mgeko_urls, key=len):
     t = threading.Thread(target=process_mg, args=(url,))
     t.start()
     threads.append(t)

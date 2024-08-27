@@ -1,27 +1,26 @@
-import urllib.parse
 import traceback
 import sys
-from base import BaseMangaSeriesScrapper
+from manga_scrappers.base_manga import BaseMangaScrapper
 
 
-class MgekoMangaSeriesScrapper(BaseMangaSeriesScrapper):
-    NAME = "Mgeko".lower()
+class MangaClashMangaSeriesScrapper(BaseMangaScrapper):
+    NAME = "MangaClash".lower()
 
     def get_all_chapter_urls(self):
-        soup = self.get_soup(urllib.parse.urljoin(self.url, "all-chapters/"))
+        soup = self.get_soup(self.url)
         return [
-            urllib.parse.urljoin(self.url, e.find("a")["href"])
-            for e in soup.find("ul", attrs={"class": "chapter-list"}).find_all("li")
+            e.find("a")["href"]
+            for e in soup.find_all("li", attrs={"class": "wp-manga-chapter"})
         ][::-1]
 
     def get_imgs_from_url(self, url: str):
+        imgs = []
         soup = self.get_soup(url)
-        imgs_div = soup.find("div", attrs={"id": "chapter-reader"})
+        imgs_div = soup.find("div", attrs={"class": "reading-content"})
 
         if imgs_div is None:
-            return
+            return imgs
 
-        imgs = []
         for e in imgs_div.findAll("img"):
             try:
                 imgs.append(e["src"].strip())
@@ -37,7 +36,7 @@ class MgekoMangaSeriesScrapper(BaseMangaSeriesScrapper):
 
 if __name__ == "__main__":
     BASE_URL = sys.argv[1]
-    scrapper = MgekoMangaSeriesScrapper(BASE_URL)
+    scrapper = MangaClashMangaSeriesScrapper(BASE_URL)
     try:
         scrapper.scrap()
     except Exception as err:
